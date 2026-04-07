@@ -24,6 +24,14 @@ enum TaskStatus {
   CANCELLED
 }
 
+enum AuditActionType {
+  CREATE_TASK
+  UPDATE_TASK
+  DELETE_TASK
+  UPDATE_STATUS
+  ASSIGN_TASK
+}
+
 // =====================
 // Models
 // =====================
@@ -39,8 +47,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  createdTasks  Task[] @relation("TaskCreator")
-  assignedTasks Task[] @relation("TaskAssignee")
+  createdTasks  Task[]     @relation("TaskCreator")
+  assignedTasks Task[]     @relation("TaskAssignee")
+  auditLogs     AuditLog[] @relation("AuditActor")
 
   @@map("users")
 }
@@ -68,4 +77,23 @@ model Task {
   @@index([assigneeId])
   @@index([status])
   @@map("tasks")
+}
+
+model AuditLog {
+  id           Int             @id @default(autoincrement())
+  actorId      Int
+  actionType   AuditActionType
+  targetEntity Int // Task ID
+  payload      Json // Contains before/after states
+  createdAt    DateTime        @default(now())
+
+  // Relations
+  actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([actorId])
+  @@index([actionType])
+  @@index([targetEntity])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

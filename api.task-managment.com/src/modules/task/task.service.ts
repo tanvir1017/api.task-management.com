@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Task, TaskStatus, UserRole } from '@prisma/client';
 import { PrismaService } from 'src/common/providers/prisma.service';
+import { AuditService } from 'src/modules/audit/audit.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -16,7 +17,10 @@ type RequestUser = {
 
 @Injectable()
 export class TaskService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async createTask(
     createTaskDto: CreateTaskDto,
@@ -33,7 +37,7 @@ export class TaskService {
       throw new NotFoundException('Assigned user not found');
     }
 
-    return this.prismaService.task.create({
+    const task = await this.prismaService.task.create({
       data: {
         title: createTaskDto.title,
         description: createTaskDto.description,
@@ -41,6 +45,22 @@ export class TaskService {
         assigneeId: createTaskDto.assignedToId,
       },
     });
+
+    // Log to audit queue (fire-and-forget)
+    this.auditService
+      .logTaskCreation(actor.id, task.id, {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        creatorId: task.creatorId,
+        assigneeId: task.assigneeId,
+      })
+      .catch((error) => {
+        // Log error but don't throw - audit logging failures shouldn't block operations
+        console.error('Failed to queue audit log for task creation:', error);
+      });
+
+    return task;
   }
 
   async findAllTasks(actor: RequestUser): Promise<Task[]> {
@@ -58,7 +78,13 @@ export class TaskService {
   ): Promise<Task> {
     this.assertAdmin(actor);
 
-    await this.ensureTaskExists(taskId);
+    const oldTask = await this.prismaService.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!oldTask) {
+      throw new NotFoundException('Task not found');
+    }
 
     if (updateTaskDto.assignedToId !== undefined) {
       const assignee = await this.prismaService.user.findUnique({
@@ -71,7 +97,7 @@ export class TaskService {
       }
     }
 
-    return this.prismaService.task.update({
+    const newTask = await this.prismaService.task.update({
       where: { id: taskId },
       data: {
         title: updateTaskDto.title,
@@ -79,6 +105,49 @@ export class TaskService {
         assigneeId: updateTaskDto.assignedToId,
       },
     });
+
+    // Prepare before/after payloads
+    const before: Record<string, any> = {};
+    const after: Record<string, any> = {};
+
+    if (updateTaskDto.title !== undefined) {
+      before.title = oldTask.title;
+      after.title = newTask.title;
+    }
+    if (updateTaskDto.description !== undefined) {
+      before.description = oldTask.description;
+      after.description = newTask.description;
+    }
+    if (updateTaskDto.assignedToId !== undefined) {
+      before.assigneeId = oldTask.assigneeId;
+      after.assigneeId = newTask.assigneeId;
+    }
+
+    // Log to audit queue (fire-and-forget)
+    this.auditService
+      .logTaskUpdate(actor.id, taskId, before, after)
+      .catch((error) => {
+        console.error('Failed to queue audit log for task update:', error);
+      });
+
+    // If assignee changed, also log assignment change
+    if (updateTaskDto.assignedToId !== undefined) {
+      this.auditService
+        .logTaskAssignmentChange(
+          actor.id,
+          taskId,
+          oldTask.assigneeId,
+          newTask.assigneeId,
+        )
+        .catch((error) => {
+          console.error(
+            'Failed to queue audit log for assignment change:',
+            error,
+          );
+        });
+    }
+
+    return newTask;
   }
 
   async deleteTask(
@@ -87,11 +156,30 @@ export class TaskService {
   ): Promise<{ message: string }> {
     this.assertAdmin(actor);
 
-    await this.ensureTaskExists(taskId);
+    const task = await this.prismaService.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
 
     await this.prismaService.task.delete({
       where: { id: taskId },
     });
+
+    // Log to audit queue (fire-and-forget)
+    this.auditService
+      .logTaskDeletion(actor.id, taskId, {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        creatorId: task.creatorId,
+        assigneeId: task.assigneeId,
+      })
+      .catch((error) => {
+        console.error('Failed to queue audit log for task deletion:', error);
+      });
 
     return { message: 'Task deleted successfully' };
   }
@@ -99,6 +187,42 @@ export class TaskService {
   async findMyTasks(actor: RequestUser): Promise<Task[]> {
     return this.prismaService.task.findMany({
       where: { assigneeId: actor.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findMyTasksWithFilters(
+    actor: RequestUser,
+    search?: string,
+    status?: TaskStatus,
+  ): Promise<Task[]> {
+    const whereClause: any = { assigneeId: actor.id };
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      whereClause.OR = [
+        {
+          title: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    // Add status filter if provided
+    if (status) {
+      whereClause.status = status;
+    }
+
+    return this.prismaService.task.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -113,6 +237,7 @@ export class TaskService {
       select: {
         id: true,
         assigneeId: true,
+        status: true,
       },
     });
 
@@ -124,12 +249,23 @@ export class TaskService {
       throw new ForbiddenException('You can update only your assigned tasks');
     }
 
-    return this.prismaService.task.update({
+    const oldStatus = task.status;
+
+    const updatedTask = await this.prismaService.task.update({
       where: { id: taskId },
       data: {
         status: dto.status as TaskStatus,
       },
     });
+
+    // Log to audit queue (fire-and-forget)
+    this.auditService
+      .logTaskStatusChange(actor.id, taskId, oldStatus, updatedTask.status)
+      .catch((error) => {
+        console.error('Failed to queue audit log for status change:', error);
+      });
+
+    return updatedTask;
   }
 
   private assertAdmin(actor: RequestUser): void {

@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import { Task, UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { GetMyTasksQueryDto } from './dto/get-my-tasks-query.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
@@ -76,6 +78,22 @@ export class TaskController {
   @ApiOperation({ summary: 'Get my assigned tasks (User only)' })
   getMyTasks(@Req() req: Request): Promise<Task[]> {
     return this.taskService.findMyTasks(req.user as RequestUser);
+  }
+
+  @Get('my-task')
+  @Roles(UserRole.USER)
+  @ApiOperation({
+    summary: 'Get my assigned tasks with search and status filter (User only)',
+  })
+  getMyTasksWithFilters(
+    @Query() query: GetMyTasksQueryDto,
+    @Req() req: Request,
+  ): Promise<Task[]> {
+    return this.taskService.findMyTasksWithFilters(
+      req.user as RequestUser,
+      query.search,
+      query.status,
+    );
   }
 
   @Patch(':id/status')

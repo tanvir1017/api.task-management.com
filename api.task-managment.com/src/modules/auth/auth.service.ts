@@ -2,6 +2,8 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -13,11 +15,36 @@ import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.bootstrapDefaultUsers();
+  }
+
+  private async bootstrapDefaultUsers(): Promise<void> {
+    try {
+      this.logger.log('Starting bootstrap of default users...');
+
+      // Ensure system admin/admin user
+      await this.ensureSystemAdmin();
+
+      // Ensure normal user
+      await this.ensureNormalUser();
+
+      this.logger.log('Bootstrap of default users completed successfully');
+    } catch (error) {
+      this.logger.error(
+        `Failed to bootstrap default users: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Don't throw - let the application start even if bootstrap fails
+    }
+  }
 
   async ensureSystemAdmin(): Promise<void> {
     const isProduction = process.env.NODE_ENV === 'production';
@@ -79,6 +106,58 @@ export class AuthService {
         role: bootstrapRole,
       },
     });
+
+    this.logger.log(`System Admin user created: ${email}`);
+  }
+
+  private async ensureNormalUser(): Promise<void> {
+    const email = process.env.DEFAULT_USER_EMAIL ?? 'user@taskmanagement.local';
+    const password = process.env.DEFAULT_USER_PASSWORD ?? 'user-password-123';
+    const usernameFromEnv = process.env.DEFAULT_USER_USERNAME ?? 'user';
+    const fullName = process.env.DEFAULT_USER_FULL_NAME || 'Normal User';
+
+    const existingNormalUser = await this.prismaService.user.findFirst({
+      where: { role: UserRole.USER },
+      select: { id: true },
+    });
+
+    if (existingNormalUser) {
+      return;
+    }
+
+    const existingEmail = await this.prismaService.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingEmail) {
+      await this.prismaService.user.update({
+        where: { id: existingEmail.id },
+        data: {
+          role: UserRole.USER,
+          isActive: true,
+          fullName,
+        },
+      });
+
+      this.logger.log(`Normal user role assigned to: ${email}`);
+      return;
+    }
+
+    const username = await this.buildUniqueUsername(usernameFromEnv);
+    const hashedPassword = await hash(password, 10);
+
+    await this.prismaService.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        fullName,
+        role: UserRole.USER,
+      },
+    });
+
+    this.logger.log(`Normal user created: ${email}`);
   }
 
   private async resolveBootstrapRole(): Promise<UserRole> {
@@ -174,6 +253,33 @@ export class AuthService {
 
   logout(): { message: string } {
     return { message: 'Logged out successfully' };
+  }
+
+  async getAllUsers(): Promise<
+    {
+      id: number;
+      email: string;
+      username: string;
+      fullName: string | null;
+      role: UserRole;
+      isActive: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }[]
+  > {
+    return this.prismaService.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private async buildUniqueUsername(seed: string): Promise<string> {

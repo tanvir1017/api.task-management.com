@@ -1,7 +1,9 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -34,5 +36,25 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout current user (stateless)' })
   logout(@Req() _req: Request): { message: string } {
     return this.authService.logout();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.SYSTEM_ADMIN)
+  @ApiBearerAuth()
+  @Get('users')
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  getAllUsers(): Promise<
+    {
+      id: number;
+      email: string;
+      username: string;
+      fullName: string | null;
+      role: UserRole;
+      isActive: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }[]
+  > {
+    return this.authService.getAllUsers();
   }
 }

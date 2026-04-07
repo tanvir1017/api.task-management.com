@@ -117,9 +117,22 @@ exports.Prisma.TaskScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AuditLogScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  actionType: 'actionType',
+  targetEntity: 'targetEntity',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -130,6 +143,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.UserRole = exports.$Enums.UserRole = {
   USER: 'USER',
@@ -144,9 +163,18 @@ exports.TaskStatus = exports.$Enums.TaskStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.AuditActionType = exports.$Enums.AuditActionType = {
+  CREATE_TASK: 'CREATE_TASK',
+  UPDATE_TASK: 'UPDATE_TASK',
+  DELETE_TASK: 'DELETE_TASK',
+  UPDATE_STATUS: 'UPDATE_STATUS',
+  ASSIGN_TASK: 'ASSIGN_TASK'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
-  Task: 'Task'
+  Task: 'Task',
+  AuditLog: 'AuditLog'
 };
 /**
  * Create the Client
@@ -159,7 +187,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/tanvir/work/my_codes/techanalytica/api.task-managment.com/generated/prisma-client",
+      "value": "/home/tanu/my-files/codes/task-management/api.task-managment.com/generated/prisma-client",
       "fromEnvVar": null
     },
     "config": {
@@ -173,7 +201,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/tanvir/work/my_codes/techanalytica/api.task-managment.com/prisma/schema.prisma",
+    "sourceFilePath": "/home/tanu/my-files/codes/task-management/api.task-managment.com/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -187,6 +215,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": true,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -195,13 +224,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma-client\"\n}\n\n// =====================\n// Enums\n// =====================\nenum UserRole {\n  USER\n  ADMIN\n  SYSTEM_ADMIN\n}\n\nenum TaskStatus {\n  PENDING\n  IN_PROGRESS\n  COMPLETED\n  CANCELLED\n}\n\n// =====================\n// Models\n// =====================\nmodel User {\n  id        Int      @id @default(autoincrement())\n  email     String   @unique\n  username  String   @unique\n  password  String\n  fullName  String?\n  role      UserRole @default(USER)\n  isActive  Boolean  @default(true)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  createdTasks  Task[] @relation(\"TaskCreator\")\n  assignedTasks Task[] @relation(\"TaskAssignee\")\n\n  @@map(\"users\")\n}\n\nmodel Task {\n  id          Int        @id @default(autoincrement())\n  title       String\n  description String?    @db.Text\n  status      TaskStatus @default(PENDING)\n  priority    Int        @default(0)\n\n  // Foreign keys\n  creatorId  Int\n  assigneeId Int?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  creator  User  @relation(\"TaskCreator\", fields: [creatorId], references: [id], onDelete: Cascade)\n  assignee User? @relation(\"TaskAssignee\", fields: [assigneeId], references: [id], onDelete: SetNull)\n\n  // Indexes\n  @@index([creatorId])\n  @@index([assigneeId])\n  @@index([status])\n  @@map(\"tasks\")\n}\n",
-  "inlineSchemaHash": "fde730c76f47529503cc2ec05efb79bedf090822f42323c2a78a548882182621",
+  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma-client\"\n}\n\n// =====================\n// Enums\n// =====================\nenum UserRole {\n  USER\n  ADMIN\n  SYSTEM_ADMIN\n}\n\nenum TaskStatus {\n  PENDING\n  IN_PROGRESS\n  COMPLETED\n  CANCELLED\n}\n\nenum AuditActionType {\n  CREATE_TASK\n  UPDATE_TASK\n  DELETE_TASK\n  UPDATE_STATUS\n  ASSIGN_TASK\n}\n\n// =====================\n// Models\n// =====================\nmodel User {\n  id        Int      @id @default(autoincrement())\n  email     String   @unique\n  username  String   @unique\n  password  String\n  fullName  String?\n  role      UserRole @default(USER)\n  isActive  Boolean  @default(true)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  createdTasks  Task[]     @relation(\"TaskCreator\")\n  assignedTasks Task[]     @relation(\"TaskAssignee\")\n  auditLogs     AuditLog[] @relation(\"AuditActor\")\n\n  @@map(\"users\")\n}\n\nmodel Task {\n  id          Int        @id @default(autoincrement())\n  title       String\n  description String?    @db.Text\n  status      TaskStatus @default(PENDING)\n  priority    Int        @default(0)\n\n  // Foreign keys\n  creatorId  Int\n  assigneeId Int?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  creator  User  @relation(\"TaskCreator\", fields: [creatorId], references: [id], onDelete: Cascade)\n  assignee User? @relation(\"TaskAssignee\", fields: [assigneeId], references: [id], onDelete: SetNull)\n\n  // Indexes\n  @@index([creatorId])\n  @@index([assigneeId])\n  @@index([status])\n  @@map(\"tasks\")\n}\n\nmodel AuditLog {\n  id           Int             @id @default(autoincrement())\n  actorId      Int\n  actionType   AuditActionType\n  targetEntity Int // Task ID\n  payload      Json // Contains before/after states\n  createdAt    DateTime        @default(now())\n\n  // Relations\n  actor User @relation(\"AuditActor\", fields: [actorId], references: [id], onDelete: Cascade)\n\n  // Indexes\n  @@index([actorId])\n  @@index([actionType])\n  @@index([targetEntity])\n  @@index([createdAt])\n  @@map(\"audit_logs\")\n}\n",
+  "inlineSchemaHash": "86cd4cd8ebec675a4b0970fd9bf50749a8dbaa0c9398f23c3b5a38ba558b745c",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"fullName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"UserRole\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdTasks\",\"kind\":\"object\",\"type\":\"Task\",\"relationName\":\"TaskCreator\"},{\"name\":\"assignedTasks\",\"kind\":\"object\",\"type\":\"Task\",\"relationName\":\"TaskAssignee\"}],\"dbName\":\"users\"},\"Task\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"TaskStatus\"},{\"name\":\"priority\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"assigneeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"TaskCreator\"},{\"name\":\"assignee\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"TaskAssignee\"}],\"dbName\":\"tasks\"}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"username\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"fullName\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"UserRole\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdTasks\",\"kind\":\"object\",\"type\":\"Task\",\"relationName\":\"TaskCreator\"},{\"name\":\"assignedTasks\",\"kind\":\"object\",\"type\":\"Task\",\"relationName\":\"TaskAssignee\"},{\"name\":\"auditLogs\",\"kind\":\"object\",\"type\":\"AuditLog\",\"relationName\":\"AuditActor\"}],\"dbName\":\"users\"},\"Task\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"TaskStatus\"},{\"name\":\"priority\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"assigneeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"TaskCreator\"},{\"name\":\"assignee\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"TaskAssignee\"}],\"dbName\":\"tasks\"},\"AuditLog\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"actorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"actionType\",\"kind\":\"enum\",\"type\":\"AuditActionType\"},{\"name\":\"targetEntity\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"payload\",\"kind\":\"scalar\",\"type\":\"Json\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"actor\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"AuditActor\"}],\"dbName\":\"audit_logs\"}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),
