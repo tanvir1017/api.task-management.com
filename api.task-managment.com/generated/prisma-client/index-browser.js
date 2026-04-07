@@ -114,270 +114,35 @@ Prisma.NullTypes = {
  * Enums
  */
 
-exports.Prisma.ApiKeyScalarFieldEnum = {
-  id: 'id',
-  type: 'type',
-  name: 'name',
-  key: 'key',
-  hash: 'hash',
-  isActive: 'isActive',
-  startAt: 'startAt',
-  endAt: 'endAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.RoleScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  type: 'type',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.CountryScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  alpha2Code: 'alpha2Code',
-  alpha3Code: 'alpha3Code',
-  phoneCode: 'phoneCode',
-  continent: 'continent',
-  timezone: 'timezone',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.UserMobileNumberScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  countryId: 'countryId',
-  phoneCode: 'phoneCode',
-  number: 'number',
-  isVerified: 'isVerified',
-  verifiedAt: 'verifiedAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
+exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
+  ReadUncommitted: 'ReadUncommitted',
+  ReadCommitted: 'ReadCommitted',
+  RepeatableRead: 'RepeatableRead',
+  Serializable: 'Serializable'
+});
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  username: 'username',
-  isVerified: 'isVerified',
-  verifiedAt: 'verifiedAt',
   email: 'email',
-  roleId: 'roleId',
+  username: 'username',
   password: 'password',
-  passwordExpired: 'passwordExpired',
-  passwordCreated: 'passwordCreated',
-  passwordAttempt: 'passwordAttempt',
-  signUpAt: 'signUpAt',
-  signUpFrom: 'signUpFrom',
-  signUpWith: 'signUpWith',
-  status: 'status',
-  gender: 'gender',
-  countryId: 'countryId',
-  lastLoginAt: 'lastLoginAt',
-  lastIPAddress: 'lastIPAddress',
-  lastLoginFrom: 'lastLoginFrom',
-  lastLoginWith: 'lastLoginWith',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy',
-  deletedAt: 'deletedAt',
-  deletedBy: 'deletedBy'
-};
-
-exports.Prisma.VerificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  mobileNumberId: 'mobileNumberId',
-  to: 'to',
-  type: 'type',
-  token: 'token',
-  expiredAt: 'expiredAt',
-  verifiedAt: 'verifiedAt',
-  isUsed: 'isUsed',
-  reference: 'reference',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy'
-};
-
-exports.Prisma.PasswordHistoryScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  password: 'password',
-  type: 'type',
-  expiredAt: 'expiredAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy'
-};
-
-exports.Prisma.ActivityLogScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  action: 'action',
-  ipAddress: 'ipAddress',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy'
-};
-
-exports.Prisma.SessionScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  deviceOwnershipId: 'deviceOwnershipId',
-  jti: 'jti',
-  ipAddress: 'ipAddress',
-  expiredAt: 'expiredAt',
-  revokedAt: 'revokedAt',
-  isRevoked: 'isRevoked',
-  revokedById: 'revokedById',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.DeviceScalarFieldEnum = {
-  id: 'id',
-  fingerprint: 'fingerprint',
-  name: 'name',
-  platform: 'platform',
-  lastActiveAt: 'lastActiveAt',
-  notificationToken: 'notificationToken',
-  notificationProvider: 'notificationProvider',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.DeviceOwnershipScalarFieldEnum = {
-  id: 'id',
-  deviceId: 'deviceId',
-  userId: 'userId',
-  revokedAt: 'revokedAt',
-  isRevoked: 'isRevoked',
-  revokedById: 'revokedById',
-  lastActiveAt: 'lastActiveAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.TwoFactorScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  secret: 'secret',
-  iv: 'iv',
-  backupCodes: 'backupCodes',
-  enabled: 'enabled',
-  requiredSetup: 'requiredSetup',
-  confirmedAt: 'confirmedAt',
-  lastUsedAt: 'lastUsedAt',
-  attempt: 'attempt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.TermPolicyScalarFieldEnum = {
-  id: 'id',
-  type: 'type',
-  version: 'version',
-  status: 'status',
-  publishedAt: 'publishedAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.TermPolicyUserAcceptanceScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  termPolicyId: 'termPolicyId',
-  acceptedAt: 'acceptedAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy'
-};
-
-exports.Prisma.FeatureFlagScalarFieldEnum = {
-  id: 'id',
-  key: 'key',
-  description: 'description',
-  isEnable: 'isEnable',
-  rolloutPercent: 'rolloutPercent',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.ForgotPasswordScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  to: 'to',
-  token: 'token',
-  expiredAt: 'expiredAt',
-  resetAt: 'resetAt',
-  isUsed: 'isUsed',
-  reference: 'reference',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy'
-};
-
-exports.Prisma.NotificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  type: 'type',
-  priority: 'priority',
-  title: 'title',
-  body: 'body',
-  metadata: 'metadata',
-  isRead: 'isRead',
-  readAt: 'readAt',
-  createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
-};
-
-exports.Prisma.NotificationDeliveryScalarFieldEnum = {
-  id: 'id',
-  notificationId: 'notificationId',
-  channel: 'channel',
-  sentAt: 'sentAt',
-  processedAt: 'processedAt',
-  failureTokens: 'failureTokens',
+  fullName: 'fullName',
+  role: 'role',
+  isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.NotificationUserSettingScalarFieldEnum = {
+exports.Prisma.TaskScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
-  channel: 'channel',
-  type: 'type',
-  isActive: 'isActive',
+  title: 'title',
+  description: 'description',
+  status: 'status',
+  priority: 'priority',
+  creatorId: 'creatorId',
+  assigneeId: 'assigneeId',
   createdAt: 'createdAt',
-  createdBy: 'createdBy',
-  updatedAt: 'updatedAt',
-  updatedBy: 'updatedBy'
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -389,188 +154,26 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
-exports.EnumApiKeyType = exports.$Enums.EnumApiKeyType = {
-  system: 'system',
-  default: 'default'
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.UserRole = exports.$Enums.UserRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN'
 };
 
-exports.EnumRoleType = exports.$Enums.EnumRoleType = {
-  superAdmin: 'superAdmin',
-  admin: 'admin',
-  user: 'user'
-};
-
-exports.EnumUserSignUpFrom = exports.$Enums.EnumUserSignUpFrom = {
-  system: 'system',
-  admin: 'admin',
-  website: 'website',
-  mobile: 'mobile'
-};
-
-exports.EnumUserSignUpWith = exports.$Enums.EnumUserSignUpWith = {
-  credential: 'credential',
-  socialGoogle: 'socialGoogle',
-  socialApple: 'socialApple'
-};
-
-exports.EnumUserStatus = exports.$Enums.EnumUserStatus = {
-  active: 'active',
-  inactive: 'inactive',
-  blocked: 'blocked'
-};
-
-exports.EnumUserGender = exports.$Enums.EnumUserGender = {
-  male: 'male',
-  female: 'female'
-};
-
-exports.EnumUserLoginFrom = exports.$Enums.EnumUserLoginFrom = {
-  website: 'website',
-  mobile: 'mobile'
-};
-
-exports.EnumUserLoginWith = exports.$Enums.EnumUserLoginWith = {
-  credential: 'credential',
-  socialGoogle: 'socialGoogle',
-  socialApple: 'socialApple'
-};
-
-exports.EnumVerificationType = exports.$Enums.EnumVerificationType = {
-  mobileNumber: 'mobileNumber',
-  email: 'email'
-};
-
-exports.EnumPasswordHistoryType = exports.$Enums.EnumPasswordHistoryType = {
-  signUp: 'signUp',
-  forgot: 'forgot',
-  admin: 'admin',
-  profile: 'profile'
-};
-
-exports.EnumActivityLogAction = exports.$Enums.EnumActivityLogAction = {
-  userCreated: 'userCreated',
-  userBlocked: 'userBlocked',
-  userUpdateStatus: 'userUpdateStatus',
-  userUpdateProfile: 'userUpdateProfile',
-  userUpdateNotificationSetting: 'userUpdateNotificationSetting',
-  userUpdatePhotoProfile: 'userUpdatePhotoProfile',
-  userChangePassword: 'userChangePassword',
-  userDeleteSelf: 'userDeleteSelf',
-  userAddMobileNumber: 'userAddMobileNumber',
-  userUpdateMobileNumber: 'userUpdateMobileNumber',
-  userDeleteMobileNumber: 'userDeleteMobileNumber',
-  userClaimUsername: 'userClaimUsername',
-  userUpdatePasswordByAdmin: 'userUpdatePasswordByAdmin',
-  userLoginCredential: 'userLoginCredential',
-  userLoginGoogle: 'userLoginGoogle',
-  userLoginApple: 'userLoginApple',
-  userRefreshToken: 'userRefreshToken',
-  userVerifiedEmail: 'userVerifiedEmail',
-  userSendVerificationEmail: 'userSendVerificationEmail',
-  userSignedUp: 'userSignedUp',
-  userResetPassword: 'userResetPassword',
-  userRevokeSession: 'userRevokeSession',
-  userRevokeSessionByAdmin: 'userRevokeSessionByAdmin',
-  userRevokeAllSessions: 'userRevokeAllSessions',
-  userRevokeAllSessionsByAdmin: 'userRevokeAllSessionsByAdmin',
-  userRemoveDevice: 'userRemoveDevice',
-  userAcceptTermPolicy: 'userAcceptTermPolicy',
-  userForgotPassword: 'userForgotPassword',
-  userReachMaxPasswordAttempt: 'userReachMaxPasswordAttempt',
-  userSetupTwoFactor: 'userSetupTwoFactor',
-  userEnableTwoFactor: 'userEnableTwoFactor',
-  userDisableTwoFactor: 'userDisableTwoFactor',
-  userVerifyTwoFactor: 'userVerifyTwoFactor',
-  userRegenerateTwoFactorBackupCodes: 'userRegenerateTwoFactorBackupCodes',
-  userDeviceRefresh: 'userDeviceRefresh',
-  adminSessionRevoke: 'adminSessionRevoke',
-  adminApiKeyCreate: 'adminApiKeyCreate',
-  adminApiKeyReset: 'adminApiKeyReset',
-  adminApiKeyUpdate: 'adminApiKeyUpdate',
-  adminApiKeyUpdateDate: 'adminApiKeyUpdateDate',
-  adminApiKeyUpdateStatus: 'adminApiKeyUpdateStatus',
-  adminApiKeyDelete: 'adminApiKeyDelete',
-  adminRoleCreate: 'adminRoleCreate',
-  adminRoleUpdate: 'adminRoleUpdate',
-  adminRoleDelete: 'adminRoleDelete',
-  adminTermPolicyCreate: 'adminTermPolicyCreate',
-  adminTermPolicyDelete: 'adminTermPolicyDelete',
-  adminTermPolicyUpdateContent: 'adminTermPolicyUpdateContent',
-  adminTermPolicyAddContent: 'adminTermPolicyAddContent',
-  adminTermPolicyRemoveContent: 'adminTermPolicyRemoveContent',
-  adminTermPolicyPublish: 'adminTermPolicyPublish',
-  adminUserCreate: 'adminUserCreate',
-  adminUserUpdateStatus: 'adminUserUpdateStatus',
-  adminUserUpdatePassword: 'adminUserUpdatePassword',
-  adminUserResetTwoFactor: 'adminUserResetTwoFactor',
-  adminUserImport: 'adminUserImport',
-  adminDeviceRemove: 'adminDeviceRemove'
-};
-
-exports.EnumDevicePlatform = exports.$Enums.EnumDevicePlatform = {
-  ios: 'ios',
-  android: 'android',
-  web: 'web'
-};
-
-exports.EnumDeviceNotificationProvider = exports.$Enums.EnumDeviceNotificationProvider = {
-  fcm: 'fcm',
-  apns: 'apns'
-};
-
-exports.EnumTermPolicyType = exports.$Enums.EnumTermPolicyType = {
-  termsOfService: 'termsOfService',
-  privacy: 'privacy',
-  cookies: 'cookies',
-  marketing: 'marketing'
-};
-
-exports.EnumTermPolicyStatus = exports.$Enums.EnumTermPolicyStatus = {
-  draft: 'draft',
-  published: 'published'
-};
-
-exports.EnumNotificationType = exports.$Enums.EnumNotificationType = {
-  securityAlert: 'securityAlert',
-  transactional: 'transactional',
-  userActivity: 'userActivity',
-  marketing: 'marketing'
-};
-
-exports.EnumNotificationPriority = exports.$Enums.EnumNotificationPriority = {
-  low: 'low',
-  normal: 'normal',
-  high: 'high',
-  critical: 'critical'
-};
-
-exports.EnumNotificationChannel = exports.$Enums.EnumNotificationChannel = {
-  push: 'push',
-  email: 'email',
-  inApp: 'inApp',
-  silent: 'silent'
+exports.TaskStatus = exports.$Enums.TaskStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
 };
 
 exports.Prisma.ModelName = {
-  ApiKey: 'ApiKey',
-  Role: 'Role',
-  Country: 'Country',
-  UserMobileNumber: 'UserMobileNumber',
   User: 'User',
-  Verification: 'Verification',
-  PasswordHistory: 'PasswordHistory',
-  ActivityLog: 'ActivityLog',
-  Session: 'Session',
-  Device: 'Device',
-  DeviceOwnership: 'DeviceOwnership',
-  TwoFactor: 'TwoFactor',
-  TermPolicy: 'TermPolicy',
-  TermPolicyUserAcceptance: 'TermPolicyUserAcceptance',
-  FeatureFlag: 'FeatureFlag',
-  ForgotPassword: 'ForgotPassword',
-  Notification: 'Notification',
-  NotificationDelivery: 'NotificationDelivery',
-  NotificationUserSetting: 'NotificationUserSetting'
+  Task: 'Task'
 };
 
 /**

@@ -1,113 +1,50 @@
-import './instrument';
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './main/app.module';
 
-import { AppModule } from '@app/app.module';
-import { AppEnvDto } from '@app/dtos/app.env.dto';
-import { MessageService } from '@common/message/services/message.service';
-import { Logger, VersioningType } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { NestApplication, NestFactory } from '@nestjs/core';
-import { plainToInstance } from 'class-transformer';
-import { useContainer, validate } from 'class-validator';
-import { Logger as PinoLogger } from 'nestjs-pino';
-import swaggerInit from 'src/swagger';
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
-async function bootstrap(): Promise<void> {
-  const app: NestApplication = await NestFactory.create(AppModule, {
-    abortOnError: true,
-    bufferLogs: true,
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.CORS_ALLOWED_ORIGIN?.split(',') ?? [
+      'http://localhost:3001',
+    ],
+    credentials: true,
   });
 
-  // Custom Logger
-  app.useLogger(app.get(PinoLogger));
-
-  const configService = app.get(ConfigService);
-  const env: string = configService.get<string>('app.env');
-  const timezone: string = configService.get<string>('app.timezone');
-  const host: string = configService.get<string>('app.http.host');
-  const port: number = configService.get<number>('app.http.port');
-  const globalPrefix: string = configService.get<string>('app.globalPrefix');
-  const versioningPrefix: string = configService.get<string>(
-    'app.urlVersion.prefix',
-  );
-  const version: string = configService.get<string>('app.urlVersion.version');
-  const appName: string = configService.get<string>('app.name');
-  const databaseUrl = configService.get<string>('database.url');
-  const databaseDebug = configService.get<boolean>('database.debug');
-  const loggerAuto = configService.get<boolean>('logger.auto');
-  const loggerDebugEnable = configService.get<boolean>('logger.enable');
-  const loggerDebugLevel = configService.get<string>('logger.level');
-
-  // enable
-  const versionEnable: string = configService.get<string>(
-    'app.urlVersion.enable',
+  // Global pipes
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
-  process.env.NODE_ENV = env;
-  process.env.TZ = timezone;
+  // Swagger/OpenAPI documentation
+  const config = new DocumentBuilder()
+    .setTitle('Task Management API')
+    .setDescription('RESTful API for task management system')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
 
-  // Setting
-  app.setGlobalPrefix(globalPrefix);
-  useContainer(app.select(AppModule), { fallbackOnErrors: true });
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
-  // Versioning
-  if (versionEnable) {
-    app.enableVersioning({
-      type: VersioningType.URI,
-      defaultVersion: version,
-      prefix: versioningPrefix,
-    });
-  }
+  // Global prefix
+  app.setGlobalPrefix('api/v1');
 
-  // Validate Env
-  const logger = new Logger(`${appName}-Main`);
-  const classEnv = plainToInstance(AppEnvDto, process.env);
-  const errors = await validate(classEnv, {
-    skipMissingProperties: false,
-    skipNullProperties: false,
-    skipUndefinedProperties: false,
-    validationError: {
-      target: false,
-      value: true,
-    },
-  });
-  if (errors.length > 0) {
-    const messageService = app.get(MessageService);
-    const errorsMessage = messageService.setValidationMessage(errors);
+  const PORT = process.env.APP_HTTP_PORT || 3000;
+  await app.listen(PORT);
 
-    logger.error(
-      `Env Variable Invalid: ${JSON.stringify(errorsMessage)}`,
-      'NestApplication',
-    );
-
-    throw new Error('Env Variable Invalid', {
-      cause: errorsMessage,
-    });
-  }
-
-  // Swagger
-  await swaggerInit(app);
-
-  // Listen
-  await app.listen(port, host);
-
-  logger.log('=='.repeat(30), 'NestApplication');
-  logger.log(`App Environment: ${env}`, 'NestApplication');
-  logger.log(`App Name: ${appName}`, 'NestApplication');
-  logger.log(`App Global Prefix: ${globalPrefix}`, 'NestApplication');
-  logger.log(`App Versioning Prefix: /${versioningPrefix}`, 'NestApplication');
-  logger.log(`App Version: ${version}`, 'NestApplication');
-  logger.log(`App Timezone: ${timezone}`, 'NestApplication');
-  logger.log(
-    `App URL: http://${host}:${port}${globalPrefix}`,
-    'NestApplication',
-  );
-  logger.log(`Database URL: ${databaseUrl}`, 'NestApplication');
-  logger.log(`Database Debug: ${databaseDebug}`, 'NestApplication');
-  logger.log(`Logger Auto: ${loggerAuto}`, 'NestApplication');
-  logger.log(`Logger Debug Enable: ${loggerDebugEnable}`, 'NestApplication');
-  logger.log(`Logger Debug Level: ${loggerDebugLevel}`, 'NestApplication');
-  logger.log('=='.repeat(30), 'NestApplication');
-
-  return;
+  console.log(`✅ Application is running on: http://localhost:${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api/docs`);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('❌ Application failed to start:', err);
+  process.exit(1);
+});
