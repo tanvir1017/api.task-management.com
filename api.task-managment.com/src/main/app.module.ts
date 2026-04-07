@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from 'src/common/providers/prisma.module';
+import { AuthModule } from 'src/modules/auth/auth.module';
+import { TaskModule } from 'src/modules/task/task.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -9,6 +12,9 @@ import { AppService } from './app.service';
       isGlobal: true,
       envFilePath: ['.env', `.env.${process.env.NODE_ENV || 'development'}`],
     }),
+    PrismaModule,
+    AuthModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],

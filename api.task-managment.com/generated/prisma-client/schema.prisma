@@ -14,6 +14,7 @@ generator client {
 enum UserRole {
   USER
   ADMIN
+  SYSTEM_ADMIN
 }
 
 enum TaskStatus {

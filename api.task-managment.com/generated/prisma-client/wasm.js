@@ -36,11 +36,11 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.19.1
+ * Prisma Client JS version: 6.19.3
  * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
  */
 Prisma.prismaVersion = {
-  client: "6.19.1",
+  client: "6.19.3",
   engine: "c2990dca591cba766e3b7ef5d9e8a84796e47ab7"
 }
 
@@ -133,7 +133,8 @@ exports.Prisma.NullsOrder = {
 };
 exports.UserRole = exports.$Enums.UserRole = {
   USER: 'USER',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  SYSTEM_ADMIN: 'SYSTEM_ADMIN'
 };
 
 exports.TaskStatus = exports.$Enums.TaskStatus = {
@@ -180,13 +181,12 @@ const config = {
     "schemaEnvPath": "../../.env"
   },
   "relativePath": "../../prisma",
-  "clientVersion": "6.19.1",
+  "clientVersion": "6.19.3",
   "engineVersion": "c2990dca591cba766e3b7ef5d9e8a84796e47ab7",
   "datasourceNames": [
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -195,8 +195,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma-client\"\n}\n\n// =====================\n// Enums\n// =====================\nenum UserRole {\n  USER\n  ADMIN\n}\n\nenum TaskStatus {\n  PENDING\n  IN_PROGRESS\n  COMPLETED\n  CANCELLED\n}\n\n// =====================\n// Models\n// =====================\nmodel User {\n  id        Int      @id @default(autoincrement())\n  email     String   @unique\n  username  String   @unique\n  password  String\n  fullName  String?\n  role      UserRole @default(USER)\n  isActive  Boolean  @default(true)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  createdTasks  Task[] @relation(\"TaskCreator\")\n  assignedTasks Task[] @relation(\"TaskAssignee\")\n\n  @@map(\"users\")\n}\n\nmodel Task {\n  id          Int        @id @default(autoincrement())\n  title       String\n  description String?    @db.Text\n  status      TaskStatus @default(PENDING)\n  priority    Int        @default(0)\n\n  // Foreign keys\n  creatorId  Int\n  assigneeId Int?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  creator  User  @relation(\"TaskCreator\", fields: [creatorId], references: [id], onDelete: Cascade)\n  assignee User? @relation(\"TaskAssignee\", fields: [assigneeId], references: [id], onDelete: SetNull)\n\n  // Indexes\n  @@index([creatorId])\n  @@index([assigneeId])\n  @@index([status])\n  @@map(\"tasks\")\n}\n",
-  "inlineSchemaHash": "f954ca3a0ffec8befd831515f8e543cda06fa628d0f407aa421053c21627e1d8",
+  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma-client\"\n}\n\n// =====================\n// Enums\n// =====================\nenum UserRole {\n  USER\n  ADMIN\n  SYSTEM_ADMIN\n}\n\nenum TaskStatus {\n  PENDING\n  IN_PROGRESS\n  COMPLETED\n  CANCELLED\n}\n\n// =====================\n// Models\n// =====================\nmodel User {\n  id        Int      @id @default(autoincrement())\n  email     String   @unique\n  username  String   @unique\n  password  String\n  fullName  String?\n  role      UserRole @default(USER)\n  isActive  Boolean  @default(true)\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  createdTasks  Task[] @relation(\"TaskCreator\")\n  assignedTasks Task[] @relation(\"TaskAssignee\")\n\n  @@map(\"users\")\n}\n\nmodel Task {\n  id          Int        @id @default(autoincrement())\n  title       String\n  description String?    @db.Text\n  status      TaskStatus @default(PENDING)\n  priority    Int        @default(0)\n\n  // Foreign keys\n  creatorId  Int\n  assigneeId Int?\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n\n  // Relations\n  creator  User  @relation(\"TaskCreator\", fields: [creatorId], references: [id], onDelete: Cascade)\n  assignee User? @relation(\"TaskAssignee\", fields: [assigneeId], references: [id], onDelete: SetNull)\n\n  // Indexes\n  @@index([creatorId])\n  @@index([assigneeId])\n  @@index([status])\n  @@map(\"tasks\")\n}\n",
+  "inlineSchemaHash": "fde730c76f47529503cc2ec05efb79bedf090822f42323c2a78a548882182621",
   "copyEngine": true
 }
 config.dirname = '/'
