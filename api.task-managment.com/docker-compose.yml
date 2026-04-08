@@ -13,7 +13,6 @@ services:
       POSTGRES_USER: taskmanager
       POSTGRES_PASSWORD: taskmanager123
       POSTGRES_DB: task_management
-      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
     deploy:

@@ -11,7 +11,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
 import { PrismaService } from 'src/common/providers/prisma.service';
-import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -266,117 +265,6 @@ export class AuthService implements OnModuleInit {
 
   logout(): { message: string } {
     return { message: 'Logged out successfully' };
-  }
-
-  async getAllUsers(): Promise<{
-    result: {
-      id: number;
-      email: string;
-      username: string;
-      fullName: string | null;
-      role: UserRole;
-      isActive: boolean;
-      createdAt: Date;
-      updatedAt: Date;
-    }[];
-    meta: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-      count: number;
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-    };
-  }> {
-    return this.getAllUsersWithQuery({});
-  }
-
-  async getAllUsersWithQuery(query: GetUsersQueryDto): Promise<{
-    result: {
-      id: number;
-      email: string;
-      username: string;
-      fullName: string | null;
-      role: UserRole;
-      isActive: boolean;
-      createdAt: Date;
-      updatedAt: Date;
-    }[];
-    meta: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-      count: number;
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-    };
-  }> {
-    const page = Math.max(1, query.page ?? 1);
-    const limit = Math.max(1, query.limit ?? 10);
-    const skip = (page - 1) * limit;
-
-    const where: Record<string, unknown> = {};
-
-    if (query.search?.trim()) {
-      where.OR = [
-        {
-          email: {
-            contains: query.search.trim(),
-            mode: 'insensitive',
-          },
-        },
-        {
-          username: {
-            contains: query.search.trim(),
-            mode: 'insensitive',
-          },
-        },
-        {
-          fullName: {
-            contains: query.search.trim(),
-            mode: 'insensitive',
-          },
-        },
-      ];
-    }
-
-    if (query.role) {
-      where.role = query.role;
-    }
-
-    if (query.isActive === 'true') {
-      where.isActive = true;
-    } else if (query.isActive === 'false') {
-      where.isActive = false;
-    }
-
-    const [users, total] = await Promise.all([
-      this.prismaService.user.findMany({
-        select: this.userSelect,
-        orderBy: { createdAt: 'desc' },
-        where,
-        skip,
-        take: limit,
-      }),
-      this.prismaService.user.count({ where }),
-    ]);
-
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-
-    return {
-      result: users,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        count: users.length,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
   }
 
   async getCurrentUser(userId: number) {

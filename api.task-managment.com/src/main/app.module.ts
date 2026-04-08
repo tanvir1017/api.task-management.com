@@ -5,6 +5,7 @@ import { PrismaModule } from 'src/common/providers/prisma.module';
 import { AuditModule } from 'src/modules/audit/audit.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { TaskModule } from 'src/modules/task/task.module';
+import { UsersModule } from 'src/modules/users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     AuthModule,
     AuditModule,
     TaskModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
