@@ -12,6 +12,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getAuditLogs } from "@/lib/api-client";
-import type { AuditLog } from "@/lib/types";
+import type { AuditActionType, AuditLog } from "@/lib/types";
 import {
   CheckCircle2,
   Clock3,
@@ -36,19 +45,14 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
 
 const ACTION_FILTERS: Array<{
-  value:
-    | "ALL"
-    | "CREATE_TASK"
-    | "UPDATE_TASK"
-    | "DELETE_TASK"
-    | "UPDATE_STATUS"
-    | "ASSIGN_TASK";
+  value: "ALL" | AuditActionType;
   label: string;
 }> = [
   { value: "ALL", label: "All actions" },
@@ -58,16 +62,6 @@ const ACTION_FILTERS: Array<{
   { value: "UPDATE_STATUS", label: "Status changed" },
   { value: "ASSIGN_TASK", label: "Reassigned" },
 ];
-
-function formatDate(value: Date | string) {
-  return new Date(value).toLocaleString([], {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function getActionTone(
   actionType: string,
@@ -103,20 +97,108 @@ function getActionIcon(actionType: string) {
   return <ShieldCheck className="h-4 w-4" />;
 }
 
+function formatDate(value: Date | string) {
+  return new Date(value).toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AuditLogsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPage = Math.max(
+    1,
+    Number.parseInt(searchParams.get("page") || "1", 10) || 1,
+  );
+  const currentLimit = Math.max(
+    1,
+    Number.parseInt(searchParams.get("limit") || String(PAGE_SIZE), 10) ||
+      PAGE_SIZE,
+  );
+  const currentSearch = (searchParams.get("search") || "").trim();
+  const actionParam = searchParams.get("actionType");
+  const currentActionFilter: "ALL" | AuditActionType =
+    actionParam &&
+    [
+      "CREATE_TASK",
+      "UPDATE_TASK",
+      "DELETE_TASK",
+      "UPDATE_STATUS",
+      "ASSIGN_TASK",
+    ].includes(actionParam)
+      ? (actionParam as AuditActionType)
+      : "ALL";
+  const currentTargetEntity = (searchParams.get("targetEntity") || "").trim();
+
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [actionFilter, setActionFilter] = useState<
-    "ALL" | AuditLog["actionType"]
-  >("ALL");
-  const [targetEntityInput, setTargetEntityInput] = useState("");
-  const [targetEntityQuery, setTargetEntityQuery] = useState("");
-  const [refreshToken, setRefreshToken] = useState(0);
+  const [searchInput, setSearchInput] = useState(currentSearch);
+  const [targetEntityInput, setTargetEntityInput] =
+    useState(currentTargetEntity);
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) {
+      return [] as Array<number | "ellipsis">;
+    }
+
+    const items: Array<number | "ellipsis"> = [];
+    const startPage = Math.max(1, currentPage - 1);
+    const endPage = Math.min(totalPages, currentPage + 1);
+
+    if (startPage > 1) {
+      items.push(1);
+      if (startPage > 2) {
+        items.push("ellipsis");
+      }
+    }
+
+    for (let page = startPage; page <= endPage; page += 1) {
+      items.push(page);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        items.push("ellipsis");
+      }
+      items.push(totalPages);
+    }
+
+    return items;
+  }, [currentPage, totalPages]);
+
+  const updateUrlQuery = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+
+      const next = params.toString();
+      router.replace(next ? `${pathname}?${next}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
+
+  useEffect(() => {
+    setSearchInput(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    setTargetEntityInput(currentTargetEntity);
+  }, [currentTargetEntity]);
 
   useEffect(() => {
     let active = true;
@@ -125,13 +207,14 @@ export default function AuditLogsPage() {
       try {
         setLoading(true);
         const response = await getAuditLogs({
-          search: searchQuery.trim() || undefined,
-          actionType: actionFilter === "ALL" ? undefined : actionFilter,
-          targetEntity: targetEntityQuery
-            ? Number(targetEntityQuery)
+          search: currentSearch || undefined,
+          actionType:
+            currentActionFilter === "ALL" ? undefined : currentActionFilter,
+          targetEntity: currentTargetEntity
+            ? Number(currentTargetEntity)
             : undefined,
-          page,
-          limit: PAGE_SIZE,
+          page: currentPage,
+          limit: currentLimit,
         });
 
         if (!active) {
@@ -142,8 +225,8 @@ export default function AuditLogsPage() {
         setTotal(response.meta.total);
         setTotalPages(response.meta.totalPages);
 
-        if (response.meta.total > 0 && page > response.meta.totalPages) {
-          setPage(response.meta.totalPages);
+        if (response.meta.total > 0 && currentPage > response.meta.totalPages) {
+          updateUrlQuery({ page: String(response.meta.totalPages) });
         }
       } catch (error) {
         if (!active) {
@@ -165,22 +248,14 @@ export default function AuditLogsPage() {
     return () => {
       active = false;
     };
-  }, [actionFilter, page, refreshToken, searchQuery, targetEntityQuery]);
-
-  const applySearch = () => {
-    setPage(1);
-    setSearchQuery(searchInput.trim());
-    setTargetEntityQuery(targetEntityInput.trim());
-  };
-
-  const resetFilters = () => {
-    setSearchInput("");
-    setSearchQuery("");
-    setActionFilter("ALL");
-    setTargetEntityInput("");
-    setTargetEntityQuery("");
-    setPage(1);
-  };
+  }, [
+    currentPage,
+    currentLimit,
+    currentSearch,
+    currentActionFilter,
+    currentTargetEntity,
+    updateUrlQuery,
+  ]);
 
   const summary = useMemo(() => {
     return {
@@ -207,8 +282,7 @@ export default function AuditLogsPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setRefreshToken((current) => current + 1);
-                setPage(1);
+                updateUrlQuery({ refreshToken: String(Date.now()) });
               }}
               disabled={loading}
             >
@@ -232,14 +306,22 @@ export default function AuditLogsPage() {
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
-                          applySearch();
+                          updateUrlQuery({
+                            search: searchInput.trim() || null,
+                            page: "1",
+                          });
                         }
                       }}
                       placeholder="Search audit logs"
                       className="max-w-md"
                     />
                     <Button
-                      onClick={applySearch}
+                      onClick={() => {
+                        updateUrlQuery({
+                          search: searchInput.trim() || null,
+                          page: "1",
+                        });
+                      }}
                       variant="outline"
                       className="gap-2"
                     >
@@ -249,10 +331,13 @@ export default function AuditLogsPage() {
                   </div>
 
                   <Select
-                    value={actionFilter}
+                    value={currentActionFilter}
                     onValueChange={(value) => {
-                      setActionFilter(value as typeof actionFilter);
-                      setPage(1);
+                      updateUrlQuery({
+                        actionType:
+                          value === "ALL" ? null : (value as AuditActionType),
+                        page: "1",
+                      });
                     }}
                   >
                     <SelectTrigger className="w-full lg:w-52">
@@ -278,7 +363,10 @@ export default function AuditLogsPage() {
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        applySearch();
+                        updateUrlQuery({
+                          targetEntity: targetEntityInput.trim() || null,
+                          page: "1",
+                        });
                       }
                     }}
                     placeholder="Task ID"
@@ -288,7 +376,16 @@ export default function AuditLogsPage() {
 
                 <Button
                   variant="ghost"
-                  onClick={resetFilters}
+                  onClick={() => {
+                    updateUrlQuery({
+                      search: null,
+                      actionType: null,
+                      targetEntity: null,
+                      page: "1",
+                    });
+                    setSearchInput("");
+                    setTargetEntityInput("");
+                  }}
                   className="shrink-0"
                 >
                   Reset
@@ -413,27 +510,64 @@ export default function AuditLogsPage() {
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-between pb-6">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setPage((currentPage) => Math.max(1, currentPage - 1))
-              }
-              disabled={page === 1 || loading}
-            >
-              Previous
-            </Button>
-            <p className="text-sm text-slate-600">
-              Page {page} of {totalPages}
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setPage((currentPage) => currentPage + 1)}
-              disabled={page >= totalPages || loading}
-            >
-              Next
-            </Button>
-          </div>
+          {total >= PAGE_SIZE && (
+            <div className="flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  {currentPage > 1 && (
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          updateUrlQuery({
+                            page: String(Math.max(1, currentPage - 1)),
+                          });
+                        }}
+                      />
+                    </PaginationItem>
+                  )}
+
+                  {paginationItems.map((item, index) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          href="#"
+                          isActive={item === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (item !== currentPage) {
+                              updateUrlQuery({ page: String(item) });
+                            }
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
+
+                  {currentPage < totalPages && (
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          updateUrlQuery({
+                            page: String(Math.min(totalPages, currentPage + 1)),
+                          });
+                        }}
+                      />
+                    </PaginationItem>
+                  )}
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>

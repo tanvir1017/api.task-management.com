@@ -502,9 +502,11 @@ export async function deleteTask(id: number): Promise<{ message: string }> {
     );
   }
 
-  return response.data ?? {
-    message: response.message || "Task deleted successfully",
-  };
+  return (
+    response.data ?? {
+      message: response.message || "Task deleted successfully",
+    }
+  );
 }
 
 /**
