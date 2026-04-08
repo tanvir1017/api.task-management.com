@@ -4,6 +4,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -15,14 +24,13 @@ import { deleteTask, getAllTasks, updateTaskStatus } from "@/lib/api-client";
 import type { Task, TaskStatus } from "@/lib/types";
 import {
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   Edit2,
   HistoryIcon,
   Search,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
@@ -50,18 +58,88 @@ export function TaskList({
   onEditTask,
   onTaskLogsClick,
 }: TaskListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPage = Math.max(
+    1,
+    Number.parseInt(searchParams.get("page") || "1", 10) || 1,
+  );
+  const currentLimit = Math.max(
+    1,
+    Number.parseInt(searchParams.get("limit") || String(PAGE_SIZE), 10) ||
+      PAGE_SIZE,
+  );
+  const currentSearch = (searchParams.get("search") || "").trim();
+  const statusParam = searchParams.get("status");
+  const currentStatus: "ALL" | TaskStatus =
+    statusParam &&
+    ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(statusParam)
+      ? (statusParam as TaskStatus)
+      : "ALL";
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | TaskStatus>("ALL");
+  const [searchInput, setSearchInput] = useState(currentSearch);
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState<number | null>(
     null,
   );
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) {
+      return [] as Array<number | "ellipsis">;
+    }
+
+    const items: Array<number | "ellipsis"> = [];
+    const startPage = Math.max(1, currentPage - 1);
+    const endPage = Math.min(totalPages, currentPage + 1);
+
+    if (startPage > 1) {
+      items.push(1);
+      if (startPage > 2) {
+        items.push("ellipsis");
+      }
+    }
+
+    for (let page = startPage; page <= endPage; page += 1) {
+      items.push(page);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        items.push("ellipsis");
+      }
+      items.push(totalPages);
+    }
+
+    return items;
+  }, [currentPage, totalPages]);
+
+  const updateUrlQuery = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+
+      const next = params.toString();
+      router.replace(next ? `${pathname}?${next}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
+
+  useEffect(() => {
+    setSearchInput(currentSearch);
+  }, [currentSearch]);
 
   useEffect(() => {
     let active = true;
@@ -71,22 +149,25 @@ export function TaskList({
         setLoading(true);
         setError(null);
         const fetchedTasks = await getAllTasks({
-          search: searchQuery.trim() || undefined,
-          status: statusFilter === "ALL" ? undefined : statusFilter,
-          page,
-          limit: PAGE_SIZE,
+          search: currentSearch || undefined,
+          status: currentStatus === "ALL" ? undefined : currentStatus,
+          page: currentPage,
+          limit: currentLimit,
         });
 
         if (!active) {
           return;
         }
 
-        setTasks(fetchedTasks.tasks);
-        setTotal(fetchedTasks.total);
-        setTotalPages(fetchedTasks.totalPages);
+        setTasks(fetchedTasks.result);
+        setTotal(fetchedTasks.meta.total);
+        setTotalPages(fetchedTasks.meta.totalPages);
 
-        if (fetchedTasks.total > 0 && page > fetchedTasks.totalPages) {
-          setPage(fetchedTasks.totalPages);
+        if (
+          fetchedTasks.meta.total > 0 &&
+          currentPage > fetchedTasks.meta.totalPages
+        ) {
+          updateUrlQuery({ page: String(fetchedTasks.meta.totalPages) });
         }
       } catch (err) {
         if (!active) {
@@ -109,18 +190,30 @@ export function TaskList({
     return () => {
       active = false;
     };
-  }, [page, refreshTrigger, searchQuery, statusFilter]);
+  }, [
+    currentLimit,
+    currentPage,
+    currentSearch,
+    currentStatus,
+    refreshTrigger,
+    updateUrlQuery,
+  ]);
 
   const applySearch = () => {
-    setPage(1);
-    setSearchQuery(searchInput.trim());
+    updateUrlQuery({
+      search: searchInput.trim() || null,
+      page: "1",
+      limit: String(PAGE_SIZE),
+    });
   };
 
   const resetFilters = () => {
-    setSearchInput("");
-    setSearchQuery("");
-    setStatusFilter("ALL");
-    setPage(1);
+    updateUrlQuery({
+      search: null,
+      status: null,
+      page: "1",
+      limit: String(PAGE_SIZE),
+    });
   };
 
   const handleStatusChange = useCallback(
@@ -209,10 +302,13 @@ export function TaskList({
               </div>
 
               <Select
-                value={statusFilter}
+                value={currentStatus}
                 onValueChange={(value) => {
-                  setStatusFilter(value as "ALL" | TaskStatus);
-                  setPage(1);
+                  updateUrlQuery({
+                    status: value === "ALL" ? null : value,
+                    page: "1",
+                    limit: String(PAGE_SIZE),
+                  });
                 }}
               >
                 <SelectTrigger className="w-full lg:w-48">
@@ -335,10 +431,13 @@ export function TaskList({
             </div>
 
             <Select
-              value={statusFilter}
+              value={currentStatus}
               onValueChange={(value) => {
-                setStatusFilter(value as "ALL" | TaskStatus);
-                setPage(1);
+                updateUrlQuery({
+                  status: value === "ALL" ? null : value,
+                  page: "1",
+                  limit: String(PAGE_SIZE),
+                });
               }}
             >
               <SelectTrigger className="w-full lg:w-48">
@@ -562,29 +661,81 @@ export function TaskList({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-        <Button
-          variant="outline"
-          onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-          disabled={page === 1 || loading}
-          className="gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <span>
-          Page {page} of {totalPages}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => setPage((currentPage) => currentPage + 1)}
-          disabled={page >= totalPages || loading}
-          className="gap-2"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {total >= PAGE_SIZE && (
+        <div className="rounded-lg border bg-white px-4 py-3 shadow-sm">
+          <div className="mb-2 text-center text-sm text-slate-600">
+            Page {currentPage} of {totalPages}
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (currentPage <= 1 || loading) return;
+                    updateUrlQuery({
+                      page: String(currentPage - 1),
+                      limit: String(PAGE_SIZE),
+                    });
+                  }}
+                  aria-disabled={currentPage <= 1 || loading}
+                  className={
+                    currentPage <= 1 || loading
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }
+                />
+              </PaginationItem>
+
+              {paginationItems.map((item, index) =>
+                item === "ellipsis" ? (
+                  <PaginationItem key={`ellipsis-${index}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={`page-${item}`}>
+                    <PaginationLink
+                      href="#"
+                      isActive={item === currentPage}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (loading || item === currentPage) return;
+                        updateUrlQuery({
+                          page: String(item),
+                          limit: String(PAGE_SIZE),
+                        });
+                      }}
+                    >
+                      {item}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (currentPage >= totalPages || loading) return;
+                    updateUrlQuery({
+                      page: String(currentPage + 1),
+                      limit: String(PAGE_SIZE),
+                    });
+                  }}
+                  aria-disabled={currentPage >= totalPages || loading}
+                  className={
+                    currentPage >= totalPages || loading
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmTaskId !== null && (
@@ -616,7 +767,13 @@ export function TaskList({
                 Cancel
               </Button>
               <Button
-                onClick={() => handleDeleteTask(deleteConfirmTaskId)}
+                onClick={() => {
+                  if (deleteConfirmTaskId === null) {
+                    return;
+                  }
+
+                  handleDeleteTask(deleteConfirmTaskId);
+                }}
                 variant="destructive"
               >
                 Delete

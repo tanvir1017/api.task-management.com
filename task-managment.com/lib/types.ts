@@ -84,6 +84,19 @@ export interface TaskListResponse {
   totalPages: number;
 }
 
+export interface TaskQueryListResponse {
+  result: Task[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    count: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 export interface UserListResponse {
   result: User[];
   meta: {

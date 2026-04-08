@@ -9,6 +9,7 @@ import type {
   CreateTaskRequest,
   Task,
   TaskListResponse,
+  TaskQueryListResponse,
   UpdateTaskRequest,
   UpdateTaskStatusRequest,
   UserListResponse,
@@ -409,7 +410,7 @@ export async function registerRequest(
 
 export async function getAllTasks(
   query: TaskQueryOptions = {},
-): Promise<TaskListResponse> {
+): Promise<TaskQueryListResponse> {
   const params = new URLSearchParams();
 
   if (query.search) params.set("search", query.search);
@@ -420,7 +421,7 @@ export async function getAllTasks(
   if (query.creatorId) params.set("creatorId", String(query.creatorId));
 
   const endpoint = `/tasks${params.toString() ? `?${params.toString()}` : ""}`;
-  const response = await apiClient.get<TaskListResponse>(endpoint);
+  const response = await apiClient.get<TaskQueryListResponse>(endpoint);
   if (!response.success || !response.data) {
     throw new Error(
       response.error || response.message || "Failed to fetch tasks",
@@ -495,12 +496,15 @@ export async function updateTaskStatus(
 
 export async function deleteTask(id: number): Promise<{ message: string }> {
   const response = await apiClient.delete<{ message: string }>(`/tasks/${id}`);
-  if (!response.success || !response.data) {
+  if (!response.success) {
     throw new Error(
       response.error || response.message || "Failed to delete task",
     );
   }
-  return response.data;
+
+  return response.data ?? {
+    message: response.message || "Task deleted successfully",
+  };
 }
 
 /**
