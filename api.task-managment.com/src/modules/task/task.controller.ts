@@ -16,9 +16,31 @@ import { Request } from 'express';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetMyTasksQueryDto } from './dto/get-my-tasks-query.dto';
+import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
+
+type TasksResultMetaResponse = {
+  result: Task[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    count: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
+type PaginatedTasksResponse = {
+  tasks: Task[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
 
 type RequestUser = {
   id: number;
@@ -42,10 +64,13 @@ export class TaskController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.SYSTEM_ADMIN)
-  @ApiOperation({ summary: 'Get all tasks (Admin only)' })
-  getAllTasks(@Req() req: Request): Promise<Task[]> {
-    return this.taskService.findAllTasks(req.user as RequestUser);
+  @Roles(UserRole.ADMIN, UserRole.SYSTEM_ADMIN, UserRole.USER)
+  @ApiOperation({ summary: 'Get all tasks' })
+  getAllTasks(
+    @Query() query: GetTasksQueryDto,
+    @Req() req: Request,
+  ): Promise<TasksResultMetaResponse> {
+    return this.taskService.findAllTasks(req.user as RequestUser, query);
   }
 
   @Patch(':id')
@@ -74,31 +99,25 @@ export class TaskController {
   }
 
   @Get('my')
-  @Roles(UserRole.USER)
-  @ApiOperation({ summary: 'Get my assigned tasks (User only)' })
-  getMyTasks(@Req() req: Request): Promise<Task[]> {
-    return this.taskService.findMyTasks(req.user as RequestUser);
-  }
-
   @Get('my-task')
   @Roles(UserRole.USER)
-  @ApiOperation({
-    summary: 'Get my assigned tasks with search and status filter (User only)',
-  })
-  getMyTasksWithFilters(
+  @ApiOperation({ summary: 'Get my assigned tasks (User only)' })
+  getMyTasks(
     @Query() query: GetMyTasksQueryDto,
     @Req() req: Request,
-  ): Promise<Task[]> {
+  ): Promise<PaginatedTasksResponse> {
     return this.taskService.findMyTasksWithFilters(
       req.user as RequestUser,
       query.search,
       query.status,
+      query.page,
+      query.limit,
     );
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.USER)
-  @ApiOperation({ summary: 'Update my task status (User only)' })
+  @Roles(UserRole.ADMIN, UserRole.SYSTEM_ADMIN, UserRole.USER)
+  @ApiOperation({ summary: 'Update task status' })
   updateMyTaskStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,

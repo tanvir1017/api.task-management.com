@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -10,13 +11,25 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
 import { PrismaService } from 'src/common/providers/prisma.service';
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
+  private readonly userSelect = {
+    id: true,
+    email: true,
+    username: true,
+    fullName: true,
+    role: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -255,8 +268,8 @@ export class AuthService implements OnModuleInit {
     return { message: 'Logged out successfully' };
   }
 
-  async getAllUsers(): Promise<
-    {
+  async getAllUsers(): Promise<{
+    result: {
       id: number;
       email: string;
       username: string;
@@ -265,20 +278,181 @@ export class AuthService implements OnModuleInit {
       isActive: boolean;
       createdAt: Date;
       updatedAt: Date;
-    }[]
-  > {
-    return this.prismaService.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        fullName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+    }[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      count: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    return this.getAllUsersWithQuery({});
+  }
+
+  async getAllUsersWithQuery(query: GetUsersQueryDto): Promise<{
+    result: {
+      id: number;
+      email: string;
+      username: string;
+      fullName: string | null;
+      role: UserRole;
+      isActive: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+    }[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      count: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.max(1, query.limit ?? 10);
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {};
+
+    if (query.search?.trim()) {
+      where.OR = [
+        {
+          email: {
+            contains: query.search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          username: {
+            contains: query.search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          fullName: {
+            contains: query.search.trim(),
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    if (query.role) {
+      where.role = query.role;
+    }
+
+    if (query.isActive === 'true') {
+      where.isActive = true;
+    } else if (query.isActive === 'false') {
+      where.isActive = false;
+    }
+
+    const [users, total] = await Promise.all([
+      this.prismaService.user.findMany({
+        select: this.userSelect,
+        orderBy: { createdAt: 'desc' },
+        where,
+        skip,
+        take: limit,
+      }),
+      this.prismaService.user.count({ where }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      result: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        count: users.length,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
       },
-      orderBy: { createdAt: 'desc' },
+    };
+  }
+
+  async getCurrentUser(userId: number) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: this.userSelect,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateCurrentUser(userId: number, updateProfileDto: UpdateProfileDto) {
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!existingUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const data: {
+      email?: string;
+      username?: string;
+      fullName?: string | null;
+    } = {};
+
+    if (typeof updateProfileDto.email === 'string') {
+      data.email = updateProfileDto.email.trim();
+    }
+
+    if (typeof updateProfileDto.username === 'string') {
+      data.username = updateProfileDto.username.trim();
+    }
+
+    if (typeof updateProfileDto.fullName === 'string') {
+      data.fullName = updateProfileDto.fullName.trim();
+    }
+
+    if (
+      data.email === undefined &&
+      data.username === undefined &&
+      data.fullName === undefined
+    ) {
+      throw new BadRequestException('No profile changes were provided');
+    }
+
+    const conflict = await this.prismaService.user.findFirst({
+      where: {
+        id: { not: userId },
+        OR: [
+          data.email ? { email: data.email } : undefined,
+          data.username ? { username: data.username } : undefined,
+        ].filter(Boolean) as Array<{ email?: string; username?: string }>,
+      },
+      select: { id: true, email: true, username: true },
+    });
+
+    if (conflict) {
+      if (data.email && conflict.email === data.email) {
+        throw new ConflictException('Email already exists');
+      }
+
+      if (data.username && conflict.username === data.username) {
+        throw new ConflictException('Username already exists');
+      }
+    }
+
+    return this.prismaService.user.update({
+      where: { id: userId },
+      data,
+      select: this.userSelect,
     });
   }
 

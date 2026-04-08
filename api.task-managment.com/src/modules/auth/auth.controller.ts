@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { Request } from 'express';
@@ -6,8 +15,16 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+
+type RequestUser = {
+  id: number;
+  email: string;
+  role: UserRole;
+};
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -39,22 +56,30 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user profile' })
+  getMe(@Req() req: Request) {
+    return this.authService.getCurrentUser((req.user as RequestUser).id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Patch('me')
+  @ApiOperation({ summary: 'Update current user profile' })
+  updateMe(@Req() req: Request, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.authService.updateCurrentUser(
+      (req.user as RequestUser).id,
+      updateProfileDto,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN, UserRole.SYSTEM_ADMIN)
   @ApiBearerAuth()
   @Get('users')
   @ApiOperation({ summary: 'Get all users (admin only)' })
-  getAllUsers(): Promise<
-    {
-      id: number;
-      email: string;
-      username: string;
-      fullName: string | null;
-      role: UserRole;
-      isActive: boolean;
-      createdAt: Date;
-      updatedAt: Date;
-    }[]
-  > {
-    return this.authService.getAllUsers();
+  getAllUsers(@Query() query: GetUsersQueryDto) {
+    return this.authService.getAllUsersWithQuery(query);
   }
 }

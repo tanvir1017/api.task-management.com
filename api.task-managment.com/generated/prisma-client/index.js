@@ -188,7 +188,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/tanu/my-files/codes/task-management/api.task-managment.com/generated/prisma-client",
+      "value": "/home/tanvir/work/task-management/api.task-managment.com/generated/prisma-client",
       "fromEnvVar": null
     },
     "config": {
@@ -202,7 +202,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/tanu/my-files/codes/task-management/api.task-managment.com/prisma/schema.prisma",
+    "sourceFilePath": "/home/tanvir/work/task-management/api.task-managment.com/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -216,7 +216,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": true,
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
