@@ -1,19 +1,18 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { execSync } from 'node:child_process';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AppModule } from './main/app.module';
 import { AuthService } from './modules/auth/auth.service';
 
 async function bootstrap() {
-  try {
-    execSync('pnpm db:deploy', { stdio: 'inherit' });
-  } catch (error) {
-    console.error('❌ Database migration failed during startup:', error);
-    process.exit(1);
-  }
+  // try {
+  //   execSync('pnpm db:deploy', { stdio: 'inherit' });
+  // } catch (error) {
+  //   console.error('❌ Database migration failed during startup:', error);
+  //   process.exit(1);
+  // }
 
   const app = await NestFactory.create(AppModule);
   const authService = app.get(AuthService);
@@ -28,6 +27,8 @@ async function bootstrap() {
       'http://localhost:4975',
       'http://143.198.215.14:4975',
       'http://72.62.246.104:4975',
+      'http://localhost:4976',
+      'http://72.62.246.104:4976',
     ],
     credentials: true,
   });

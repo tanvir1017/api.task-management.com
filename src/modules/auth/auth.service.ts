@@ -60,10 +60,8 @@ export class AuthService implements OnModuleInit {
 
   async ensureSystemAdmin(): Promise<void> {
     const isProduction = process.env.NODE_ENV === 'production';
-    const email =
-      process.env.SYSTEM_ADMIN_EMAIL ?? 'admin@taskmanagement.local';
-    const password =
-      process.env.SYSTEM_ADMIN_PASSWORD ?? 'change-this-strong-password';
+    const email = process.env.SYSTEM_ADMIN_EMAIL ?? 'admin@example.com';
+    const password = process.env.SYSTEM_ADMIN_PASSWORD ?? '123456';
     const usernameFromEnv = process.env.SYSTEM_ADMIN_USERNAME ?? 'systemadmin';
     const fullName =
       process.env.SYSTEM_ADMIN_FULL_NAME || 'System Administrator';
@@ -123,8 +121,8 @@ export class AuthService implements OnModuleInit {
   }
 
   private async ensureNormalUser(): Promise<void> {
-    const email = process.env.DEFAULT_USER_EMAIL ?? 'user@taskmanagement.local';
-    const password = process.env.DEFAULT_USER_PASSWORD ?? 'user-password-123';
+    const email = 'newuser@example.com';
+    const password = '123456';
     const usernameFromEnv = process.env.DEFAULT_USER_USERNAME ?? 'user';
     const fullName = process.env.DEFAULT_USER_FULL_NAME || 'Normal User';
 

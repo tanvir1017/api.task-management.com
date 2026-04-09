@@ -54,9 +54,7 @@ Configure your `.env`:
 
 ```env
 DATABASE_URL="postgresql://taskmanager:taskmanager123@localhost:5432/task_management?schema=public"
-APP_HTTP_PORT=3000
-APP_ENV=development
-CORS_ALLOWED_ORIGIN=http://localhost:3001
+
 ```
 
 ### 3. Start Docker Services
@@ -96,20 +94,6 @@ pnpm run start
 ✅ **DRY Principle** - Reusable utilities in common folder
 ✅ **Type Safety** - Full TypeScript support
 ✅ **Scalability** - Easy to add new features
-
-## Next Steps
-
-1. Create Auth Module (JWT authentication)
-2. Create Users Module (CRUD operations)
-3. Create Tasks Module (Task management)
-4. Add middleware for logging and error handling
-5. Add custom guards for role-based access
-6. Setup comprehensive error handling
-7. Add database transactions
-8. Implement caching with Redis
-9. Setup background jobs with Bull
-
----
 
 **Created**: April 7, 2026
 **Version**: 1.0.0
