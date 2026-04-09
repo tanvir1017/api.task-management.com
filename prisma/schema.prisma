@@ -1,0 +1,99 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+// =====================
+// Enums
+// =====================
+enum UserRole {
+  USER
+  ADMIN
+  SYSTEM_ADMIN
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AuditActionType {
+  CREATE_TASK
+  UPDATE_TASK
+  DELETE_TASK
+  UPDATE_STATUS
+  ASSIGN_TASK
+}
+
+// =====================
+// Models
+// =====================
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  fullName  String?
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdTasks  Task[]     @relation("TaskCreator")
+  assignedTasks Task[]     @relation("TaskAssignee")
+  auditLogs     AuditLog[] @relation("AuditActor")
+
+  @@map("users")
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(PENDING)
+  priority    Int        @default(0)
+
+  // Foreign keys
+  creatorId  Int
+  assigneeId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator  User  @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  assignee User? @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  // Indexes
+  @@index([creatorId])
+  @@index([assigneeId])
+  @@index([status])
+  @@map("tasks")
+}
+
+model AuditLog {
+  id           Int             @id @default(autoincrement())
+  actorId      Int
+  actionType   AuditActionType
+  targetEntity Int // Task ID
+  payload      Json // Contains before/after states
+  createdAt    DateTime        @default(now())
+
+  // Relations
+  actor User @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([actorId])
+  @@index([actionType])
+  @@index([targetEntity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

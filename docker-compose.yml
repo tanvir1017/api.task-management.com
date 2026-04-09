@@ -1,0 +1,102 @@
+name: task-management-api
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: task-management-api
+    hostname: backend
+    env_file:
+      - .env
+    ports:
+      - '7549:7549'
+    networks:
+      - app-network
+    environment:
+      DATABASE_URL: postgresql://taskmanager:taskmanager123@postgres:5432/task_management?schema=public
+      APP_ENV: development
+      APP_HTTP_HOST: 0.0.0.0
+      APP_HTTP_PORT: 7549
+      APP_GLOBAL_PREFIX: /api
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: task-management-db
+    hostname: postgres
+    ports:
+      - '5432:5432'
+    networks:
+      - app-network
+    environment:
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager123
+      POSTGRES_DB: task_management
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taskmanager -d task_management']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: task-management-redis
+    hostname: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge
