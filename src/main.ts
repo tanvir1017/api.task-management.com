@@ -12,10 +12,11 @@ async function bootstrap() {
 
   await authService.ensureSystemAdmin();
 
-  // Enable CORS
+  // Enable CORS with allowed origins from environment variable or default to localhost
   app.enableCors({
     origin: process.env.CORS_ALLOWED_ORIGIN?.split(',') ?? [
-      'http://localhost:3000','http://localhost:3001',
+      'http://localhost:3000',
+      'http://localhost:3001',
     ],
     credentials: true,
   });
