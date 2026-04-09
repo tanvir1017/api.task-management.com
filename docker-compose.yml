@@ -10,14 +10,14 @@ services:
     env_file:
       - .env
     ports:
-      - '7549:7549'
+      - '4975:4975'
     networks:
       - app-network
     environment:
       DATABASE_URL: postgresql://taskmanager:taskmanager123@postgres:5432/task_management?schema=public
       APP_ENV: development
       APP_HTTP_HOST: 0.0.0.0
-      APP_HTTP_PORT: 7549
+      APP_HTTP_PORT: 4975
       APP_GLOBAL_PREFIX: /api
       REDIS_HOST: redis
       REDIS_PORT: 6379
