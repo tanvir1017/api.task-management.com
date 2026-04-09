@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     ports:
-      - '7549:7549'
+      - '4975:4975'
     networks:
       - app-network
     environment:
