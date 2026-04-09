@@ -15,6 +15,6 @@ COPY . .
 
 RUN pnpm db:generate
 
-EXPOSE 7549
+EXPOSE 4975
 
 CMD ["pnpm", "start:dev"]
