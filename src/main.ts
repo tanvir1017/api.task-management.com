@@ -1,12 +1,20 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { execSync } from 'node:child_process';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AppModule } from './main/app.module';
 import { AuthService } from './modules/auth/auth.service';
 
 async function bootstrap() {
+  try {
+    execSync('pnpm db:deploy', { stdio: 'inherit' });
+  } catch (error) {
+    console.error('❌ Database migration failed during startup:', error);
+    process.exit(1);
+  }
+
   const app = await NestFactory.create(AppModule);
   const authService = app.get(AuthService);
 
