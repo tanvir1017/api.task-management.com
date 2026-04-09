@@ -1,6 +1,0 @@
-{
-    "error": {
-        "forbidden": "Sorry, you don't have the necessary permissions to perform this action.",
-        "predefinedNotFound": "Predefined abilities not setted."
-    }
-}
