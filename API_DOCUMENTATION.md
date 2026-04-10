@@ -143,37 +143,6 @@
 
 ---
 
-### User Logout
-
-**Endpoint:** `POST /auth/logout`
-
-- **Authentication Required:** Yes (Bearer Token)
-- **Roles Required:** Any authenticated user
-- **Request Body:** None
-
-**Headers:**
-
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-
-```json
-{
-  "message": "Logout successful"
-}
-```
-
-**Status Code:** 200 OK
-
-**Error Responses:**
-
-- `401 Unauthorized` - Missing or invalid token
-- `500 Internal Server Error` - Server error
-
----
-
 ### Get All Users (Admin Only)
 
 **Endpoint:** `GET /auth/users`
